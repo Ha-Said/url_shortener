@@ -1,58 +1,58 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { api } from '../api'
 import '../styles/dashboard.css'
-
-function generateCode() {
-  return Math.random().toString(36).slice(2, 8)
-}
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const [url, setUrl] = useState('')
   const [links, setLinks] = useState([])
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(null)
-  const user = JSON.parse(localStorage.getItem('currentUser') || 'null')
+  const email = localStorage.getItem('email')
+  const token = localStorage.getItem('token')
 
   useEffect(() => {
-    if (!user) return
-    const saved = JSON.parse(localStorage.getItem(`links_${user.email}`) || '[]')
-    setLinks(saved)
-  }, [])
+    if (!token) return
+    api.getLinks()
+      .then(setLinks)
+      .catch(() => {}) // silently fail if not logged in
+  }, [token])
 
-  function saveLinks(updated) {
-    localStorage.setItem(`links_${user.email}`, JSON.stringify(updated))
-    setLinks(updated)
-  }
-
-  function handleShorten(e) {
+  async function handleShorten(e) {
     e.preventDefault()
     setError('')
+    setLoading(true)
     try {
-      new URL(url)
-    } catch {
-      setError('Please enter a valid URL (include https://).')
-      return
+      const link = await api.shorten(url)
+      setLinks((prev) => [link, ...prev])
+      setUrl('')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-    const code = generateCode()
-    const short = `${window.location.origin}/s/${code}`
-    const updated = [{ original: url, short, code, createdAt: Date.now() }, ...links]
-    saveLinks(updated)
-    setUrl('')
   }
 
-  function handleCopy(short) {
-    navigator.clipboard.writeText(short)
-    setCopied(short)
+  async function handleDelete(code) {
+    try {
+      await api.deleteLink(code)
+      setLinks((prev) => prev.filter((l) => l.code !== code))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  function handleCopy(shortUrl) {
+    navigator.clipboard.writeText(shortUrl)
+    setCopied(shortUrl)
     setTimeout(() => setCopied(null), 2000)
   }
 
-  function handleDelete(code) {
-    saveLinks(links.filter((l) => l.code !== code))
-  }
-
   function handleLogout() {
-    localStorage.removeItem('currentUser')
+    localStorage.removeItem('token')
+    localStorage.removeItem('email')
     navigate('/login')
   }
 
@@ -61,8 +61,11 @@ export default function Dashboard() {
       <header className="dash-header">
         <span className="dash-logo">✂ Snip</span>
         <div className="dash-user">
-          <span>{user?.email}</span>
-          <button className="btn-ghost" onClick={handleLogout}>Log out</button>
+          {email && <span>{email}</span>}
+          {token
+            ? <button className="btn-ghost" onClick={handleLogout}>Log out</button>
+            : <button className="btn-ghost" onClick={() => navigate('/login')}>Log in</button>
+          }
         </div>
       </header>
 
@@ -76,7 +79,9 @@ export default function Dashboard() {
             placeholder="https://example.com/very/long/url"
             required
           />
-          <button type="submit" className="btn-primary">Shorten</button>
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Shortening…' : 'Shorten'}
+          </button>
         </form>
         {error && <p className="dash-error">{error}</p>}
 
@@ -85,25 +90,21 @@ export default function Dashboard() {
             {links.map((link) => (
               <div key={link.code} className="link-card">
                 <div className="link-info">
-                  <a href={link.short} target="_blank" rel="noreferrer" className="link-short">
-                    {link.short}
+                  <a href={link.shortUrl} target="_blank" rel="noreferrer" className="link-short">
+                    {link.shortUrl}
                   </a>
-                  <span className="link-original">{link.original}</span>
+                  <span className="link-original">{link.originalUrl}</span>
                 </div>
                 <div className="link-actions">
-                  <button
-                    className="btn-copy"
-                    onClick={() => handleCopy(link.short)}
-                  >
-                    {copied === link.short ? 'Copied!' : 'Copy'}
+                  <span className="link-clicks">{link.clickCount} clicks</span>
+                  <button className="btn-copy" onClick={() => handleCopy(link.shortUrl)}>
+                    {copied === link.shortUrl ? 'Copied!' : 'Copy'}
                   </button>
-                  <button
-                    className="btn-delete"
-                    onClick={() => handleDelete(link.code)}
-                    aria-label="Delete link"
-                  >
-                    ✕
-                  </button>
+                  {token && (
+                    <button className="btn-delete" onClick={() => handleDelete(link.code)} aria-label="Delete link">
+                      ✕
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

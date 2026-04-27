@@ -11,6 +11,7 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var linksRouter = require('./routes/links');
 var redirectRouter = require('./routes/redirect');
+var authRouter = require('./routes/auth');
 
 var app = express();
 
@@ -30,6 +31,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/auth', authRouter);
 app.use('/links', linksRouter);
 app.use('/s', redirectRouter);
 
