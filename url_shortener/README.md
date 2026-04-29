@@ -1,18 +1,125 @@
-# React + Vite
+# Snip — URL Shortener
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack URL shortener built with React + Vite (frontend) and Express + MongoDB (backend).
 
-Currently, two official plugins are available:
+## Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```
+url_shortener/        ← React frontend
+url_shortener_backend/ ← Express backend
+```
 
-## React Compiler
+---
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## Prerequisites
 
-Note: This will impact Vite dev & build performances.
+- Node.js 18+
+- A MongoDB Atlas account (or local MongoDB instance)
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Backend Setup
+
+```bash
+cd url_shortener_backend
+npm install
+```
+
+Create a `.env` file (copy from `.env.example`):
+
+```bash
+cp .env.example .env
+```
+
+Fill in the values:
+
+```env
+PORT=3000
+NODE_ENV=development
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_long_random_secret
+CORS_ORIGIN=http://localhost:5173
+APP_URL=http://localhost:3000
+```
+
+Start the backend:
+
+```bash
+npm start
+```
+
+The API will be running at `http://localhost:3000`.
+
+---
+
+## Frontend Setup
+
+```bash
+cd url_shortener
+npm install
+```
+
+Create a `.env` file (copy from `.env.example`):
+
+```bash
+cp .env.example .env
+```
+
+Fill in the value:
+
+```env
+VITE_API_URL=http://localhost:3000
+```
+
+Start the frontend:
+
+```bash
+npm run dev
+```
+
+The app will be running at `http://localhost:5173`.
+
+---
+
+## Running Both Together
+
+Open two terminals:
+
+**Terminal 1 — Backend:**
+```bash
+cd url_shortener_backend
+npm start
+```
+
+**Terminal 2 — Frontend:**
+```bash
+cd url_shortener
+npm run dev
+```
+
+Then open `http://localhost:5173` in your browser.
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/auth/register` | No | Create account |
+| POST | `/auth/login` | No | Login |
+| POST | `/links` | Optional | Shorten a URL |
+| GET | `/links` | Required | List your links |
+| DELETE | `/links/:code` | Required | Delete a link |
+| GET | `/s/:code` | No | Redirect to original URL |
+
+---
+
+## Deployment
+
+See [Vercel](https://vercel.com) for hosting. Deploy the backend and frontend as two separate projects, each pointing to their respective root directories.
+
+Set the following environment variables in Vercel:
+
+**Backend:** `MONGODB_URI`, `JWT_SECRET`, `CORS_ORIGIN`, `APP_URL`, `NODE_ENV`
+
+**Frontend:** `VITE_API_URL`
